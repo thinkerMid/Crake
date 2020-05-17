@@ -1,0 +1,41 @@
+写了这样几行程序:
+//__declspec(naked)是用来告诉编译器函数代码的汇编语言为自己的所写，不需要编译器添加任何汇编代码，通俗说可生成纯汇编。
+__declspec(naked) void testVMP()
+{
+	__asm mov eax ,1
+	__asm ret
+}
+
+
+
+int main(int argc, char* argv[])
+{
+	testVMP();
+	return 0;
+}
+
+
+然后主要是对testVMP里面的mov eax ,1 代码进行vm
+
+vm后的主要vm代码如下:
+00311000 > .- E9 399A0000   jmp TestVmp_.0031AA3E     跳转
+0031AA3E    68 1F2F1AA2     push 0xA21A2F1F           压入一个key
+0031AA43  ^ E9 EBFFFFFF     jmp TestVmp_.0031AA33
+0031AA33    68 D0A94000     push 0x40A9D0
+0031AA38  ^ E9 C3F9FFFF     jmp TestVmp_.0031A400
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
