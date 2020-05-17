@@ -19,12 +19,48 @@ int main(int argc, char* argv[])
 
 vm后的主要vm代码如下:
 00311000 > .- E9 399A0000   jmp TestVmp_.0031AA3E     跳转
-0031AA3E    68 1F2F1AA2     push 0xA21A2F1F           压入一个key
+0031AA3E    68 1F2F1AA2     push 0xA21A2F1F          
 0031AA43  ^ E9 EBFFFFFF     jmp TestVmp_.0031AA33
-0031AA33    68 D0A94000     push 0x40A9D0
+0031AA33    68 D0A94000     push 0x40A9D0			 压入一个key
 0031AA38  ^ E9 C3F9FFFF     jmp TestVmp_.0031A400
 
-
+0031A400    53              push ebx
+0031A401    50              push eax                                            ; ucrtbase.76DF40D0
+0031A402    51              push ecx
+0031A403    56              push esi
+0031A404    9C              pushfd
+0031A405    52              push edx
+0031A406    57              push edi
+0031A407    55              push ebp
+0031A408    52              push edx
+0031A409    68 0000F1FF     push 0xFFF10000                                     ; 压入第二个key
+0031A40E    8B7424 28       mov esi,dword ptr ss:[esp+0x28]                     ; esi等于第一个key
+;两个key值计算出被vm的代码的起始地址, 使用这两个值计算出被虚拟的伪码的起始位置（esi）
+0031A412    BA 00603100     mov edx,TestVmp_.00316000                           ; VMP1节区的地址
+;从TestVmp_.00316000 内存地址开始（第8行）作为虚拟机运行过程中的私有堆栈和临时变量存放区域
+0031A417    FF15 24203100   call dword ptr ds:[<&KERNEL32.GetCurrentThreadId>]  ; kernel32.GetCurrentThreadId
+0031A41D    89C3            mov ebx,eax                                         ; 备份eax, eax
+0031A41F    B9 00010000     mov ecx,0x100
+0031A424    89D7            mov edi,edx
+0031A426    9C              pushfd
+0031A427    FC              cld                                                 ; CLD（cleardirection）清除方向标志，cld即告诉程序si，di向前移动，std指令为度设置方向，告诉程序si，di向后移动。
+0031A428    F2:AF           repne scas dword ptr es:[edi]
+0031A42A    74 0D           je short TestVmp_.0031A439
+0031A42C    B8 00010000     mov eax,0x100
+0031A431    91              xchg eax,ecx
+0031A432    89D7            mov edi,edx
+0031A434    F2:AF           repne scas dword ptr es:[edi]
+0031A436    895F FC         mov dword ptr ds:[edi-0x4],ebx                      ; 从edi开始找一个新位置
+0031A439    89FD            mov ebp,edi                                         ; ebp = edi 这里的ebp 就等于vm里面的vesp
+0031A43B    29D7            sub edi,edx
+0031A43D    D1E7            shl edi,1
+0031A43F    8DBCFA C0030000 lea edi,dword ptr ds:[edx+edi*8+0x3C0]              ; 用edi做栈底  316400-316004
+0031A446    9D              popfd
+0031A447    89F3            mov ebx,esi                                         ; EBX = 0040A9D0
+0031A449    033424          add esi,dword ptr ss:[esp]                          ; ESI = 0031A9D0
+0031A44C    8A0E            mov cl,byte ptr ds:[esi]
+引擎进入一个循环，这个循环从上面计算出来的esi的位置开始，不断的从esi中取出数据，执行虚拟逻辑
+执行完所有的esi指向的伪码，退出虚拟机
 
 
 
